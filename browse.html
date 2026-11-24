@@ -60,7 +60,7 @@
 
     <script type="module">
       import { initNav } from './nav.js';
-      import { renderSaveGrid } from './render.js';
+      import { renderEmptyState, renderLoadingState, renderSaveGrid } from './render.js';
       import { getSaves } from './saves-data.js';
       import { filterAndSortSaves } from './sort-search.js';
 
@@ -79,7 +79,7 @@
         sortSelect.value = initialSort;
       }
 
-      const allSaves = getSaves();
+      let allSaves = [];
 
       function updateResults() {
         const filtered = filterAndSortSaves(allSaves, {
@@ -93,9 +93,20 @@
         renderSaveGrid(resultsEl, filtered, emptyText, action);
       }
 
-      searchInput.addEventListener('input', updateResults);
-      sortSelect.addEventListener('change', updateResults);
-      updateResults();
+      async function loadBrowseSaves() {
+        renderLoadingState(resultsEl, 'Loading saves...');
+        try {
+          allSaves = await getSaves();
+          updateResults();
+          searchInput.addEventListener('input', updateResults);
+          sortSelect.addEventListener('change', updateResults);
+        } catch (err) {
+          const msg = err?.message || 'Could not reach the save server. Check your connection and try again.';
+          renderEmptyState(resultsEl, msg, { href: 'browse.html', label: 'Try again' });
+        }
+      }
+
+      loadBrowseSaves();
     </script>
   </body>
 </html>

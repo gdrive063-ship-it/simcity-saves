@@ -50,11 +50,15 @@ export function renderSaveCard(save) {
     : 'No description provided.';
   top.appendChild(createEl('p', 'save-card-desc', descText));
 
+  const simDay = save.sim_day ?? save.simDay;
+  const citizensAlive = save.citizens_alive ?? save.citizensAlive;
+  const gameVersion = save.game_version ?? save.gameVersion;
+
   const meta = createEl('div', 'save-card-meta');
   meta.append(
-    createMetaItem('Sim day', formatNumber(save.simDay)),
-    createMetaItem('Citizens alive', formatNumber(save.citizensAlive)),
-    createMetaItem('Game version', save.gameVersion || 'Unknown'),
+    createMetaItem('Sim day', formatNumber(simDay)),
+    createMetaItem('Citizens alive', formatNumber(citizensAlive)),
+    createMetaItem('Game version', gameVersion || 'Unknown'),
     createMetaItem('Downloads', formatDownloads(save.downloads))
   );
 
@@ -76,7 +80,7 @@ export function renderSaveGrid(container, saves, emptyMessage, action) {
 }
 
 function formatRichestCitizen(summary) {
-  const richest = summary && summary.richestCitizen;
+  const richest = summary && (summary.richestCitizen ?? summary.richest_citizen);
   if (!richest) return 'Not recorded';
   if (typeof richest === 'string') return richest;
   if (typeof richest === 'object') {
@@ -91,11 +95,13 @@ export function renderStatsPanel(container, saveData) {
   if (!container || !saveData) return;
   container.textContent = '';
   const summary = saveData.summary && typeof saveData.summary === 'object' ? saveData.summary : {};
+  const simDay = saveData.sim_day ?? saveData.simDay;
+  const citizensAlive = saveData.citizens_alive ?? saveData.citizensAlive;
 
   const grid = createEl('div', 'stats-grid');
   const stats = [
-    ['Sim day', formatNumber(saveData.simDay)],
-    ['Citizens alive', formatNumber(saveData.citizensAlive)],
+    ['Sim day', formatNumber(simDay)],
+    ['Citizens alive', formatNumber(citizensAlive)],
     ['Richest citizen', formatRichestCitizen(summary)],
   ];
   stats.forEach(([label, value]) => {

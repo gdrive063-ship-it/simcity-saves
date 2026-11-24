@@ -383,6 +383,12 @@ p {
   background-color: var(--bg-subtle);
 }
 
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
 /* Search & Toolbar */
 .toolbar {
   display: flex;
@@ -711,6 +717,39 @@ p {
   background-color: var(--success-bg);
   color: var(--success);
   font-weight: 600;
+}
+
+.token-box {
+  margin-top: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-card);
+  border: 1px solid var(--success-border);
+  background-color: var(--success-bg);
+}
+
+.token-warning {
+  color: var(--success);
+  font-weight: 600;
+  margin-bottom: var(--space-3);
+}
+
+.token-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.token-value {
+  flex: 1 1 240px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-strong);
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.875rem;
+  word-break: break-all;
 }
 
 .notice-box {

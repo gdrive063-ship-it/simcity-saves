@@ -27,87 +27,108 @@
     <footer id="site-footer"></footer>
 
     <script type="module">
+      import { getDownloadUrl } from './download-url.js';
       import { formatDate, formatDownloads } from './format.js';
       import { initNav } from './nav.js';
-      import { renderEmptyState, renderStatsPanel } from './render.js';
-      import { getSaveById, getSaves } from './saves-data.js';
+      import { renderEmptyState, renderLoadingState, renderStatsPanel } from './render.js';
+      import { getSaveById, getSaves, incrementDownloads } from './saves-data.js';
 
       initNav('browse');
 
       const container = document.getElementById('save-container');
       const saveId = new URLSearchParams(window.location.search).get('id');
-      const allSaves = getSaves();
-      const save = saveId ? getSaveById(saveId) : null;
 
-      function downloadSaveFile(saveRecord) {
-        const payload = saveRecord.rawSave || {
-          vijSave: true,
-          gameVersion: saveRecord.gameVersion,
-          simDay: saveRecord.simDay,
-          citizensAlive: saveRecord.citizensAlive,
-          summary: saveRecord.summary || {},
-        };
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const slug = String(saveRecord.title || 'vij-city')
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, '-')
-          .replace(/^-|-$/g, '') || 'vij-city';
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `${slug}.json`;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
+      function formatMetaLine(save, downloadsCount) {
+        const version = save.game_version || save.gameVersion || 'Unknown';
+        const dateText = formatDate(save.created_at || save.uploadedAt);
+        return `Version ${version} · Uploaded ${dateText} · ${formatDownloads(downloadsCount)}`;
       }
 
-      if (!save) {
-        const message = allSaves.length === 0
-          ? 'No saves yet. Be the first to upload one.'
-          : 'That save could not be found. It may have been removed.';
-        const action = allSaves.length === 0
-          ? { href: 'upload.html', label: 'Upload a save' }
-          : { href: 'browse.html', label: 'Back to Browse' };
-        renderEmptyState(container, message, action);
-      } else {
-        document.title = `${save.title} · SimCity Saves`;
-        const card = document.createElement('article');
-        card.className = 'surface-card';
+      async function loadSaveDetail() {
+        renderLoadingState(container, 'Loading save details...');
+        try {
+          const save = saveId ? await getSaveById(saveId) : null;
+          if (!save) {
+            const allSaves = await getSaves();
+            const message = allSaves.length === 0
+              ? 'No saves yet. Be the first to upload one.'
+              : 'That save could not be found. It may have been removed.';
+            const action = allSaves.length === 0
+              ? { href: 'upload.html', label: 'Upload a save' }
+              : { href: 'browse.html', label: 'Back to Browse' };
+            renderEmptyState(container, message, action);
+            return;
+          }
 
-        const header = document.createElement('div');
-        header.className = 'detail-header';
+          document.title = `${save.title} · SimCity Saves`;
+          container.textContent = '';
+          container.removeAttribute('aria-busy');
 
-        const info = document.createElement('div');
-        const heading = document.createElement('h1');
-        heading.textContent = save.title || 'Untitled city';
-        const meta = document.createElement('div');
-        meta.className = 'detail-meta';
-        meta.textContent = `Version ${save.gameVersion || 'Unknown'} · Uploaded ${formatDate(save.uploadedAt || save.createdAt)} · ${formatDownloads(save.downloads)}`;
-        info.append(heading, meta);
+          const card = document.createElement('article');
+          card.className = 'surface-card';
 
-        if (save.description) {
-          const desc = document.createElement('p');
-          desc.className = 'detail-description';
-          desc.textContent = save.description;
-          info.appendChild(desc);
+          const header = document.createElement('div');
+          header.className = 'detail-header';
+
+          const info = document.createElement('div');
+          const heading = document.createElement('h1');
+          heading.textContent = save.title || 'Untitled city';
+          const meta = document.createElement('div');
+          meta.className = 'detail-meta';
+          meta.textContent = formatMetaLine(save, save.downloads);
+          info.append(heading, meta);
+
+          if (save.description && String(save.description).trim()) {
+            const desc = document.createElement('p');
+            desc.className = 'detail-description';
+            desc.textContent = save.description;
+            info.appendChild(desc);
+          }
+
+          const fileUrl = getDownloadUrl(save.file_id);
+          const slug = String(save.title || 'vij-city')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/^-|-$/g, '') || 'vij-city';
+
+          const downloadLink = document.createElement('a');
+          downloadLink.className = 'btn btn-primary';
+          downloadLink.textContent = 'Download save (.json)';
+          if (fileUrl) {
+            downloadLink.href = fileUrl;
+            downloadLink.setAttribute('download', `${slug}.json`);
+            downloadLink.rel = 'noopener';
+            downloadLink.addEventListener('click', () => {
+              incrementDownloads(save.id)
+                .then((updated) => {
+                  if (updated && typeof updated.downloads === 'number') {
+                    meta.textContent = formatMetaLine(save, updated.downloads);
+                  }
+                })
+                .catch(() => {
+                  // A failed increment must not block or disrupt the download
+                });
+            });
+          } else {
+            downloadLink.href = '#';
+            downloadLink.setAttribute('aria-disabled', 'true');
+          }
+
+          header.append(info, downloadLink);
+
+          const statsHost = document.createElement('section');
+          statsHost.setAttribute('aria-label', 'City statistics');
+          renderStatsPanel(statsHost, save);
+
+          card.append(header, statsHost);
+          container.appendChild(card);
+        } catch (err) {
+          const msg = err?.message || 'Could not reach the save server. Check your connection and try again.';
+          renderEmptyState(container, msg, { href: 'browse.html', label: 'Back to Browse' });
         }
-
-        const downloadBtn = document.createElement('button');
-        downloadBtn.type = 'button';
-        downloadBtn.className = 'btn btn-primary';
-        downloadBtn.textContent = 'Download save (.json)';
-        downloadBtn.addEventListener('click', () => downloadSaveFile(save));
-
-        header.append(info, downloadBtn);
-
-        const statsHost = document.createElement('section');
-        statsHost.setAttribute('aria-label', 'City statistics');
-        renderStatsPanel(statsHost, save);
-
-        card.append(header, statsHost);
-        container.appendChild(card);
       }
+
+      loadSaveDetail();
     </script>
   </body>
 </html>

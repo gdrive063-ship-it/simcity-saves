@@ -1,145 +1,142 @@
-// upload-form.js - Manages upload validation, Vij save file inspection, stats preview, and placeholder submit
+// upload-form.js - Validates Vij save uploads, previews stats, and submits saves to Nhost
 
+import { initCopyTokenButton } from './delete-token.js';
 import { renderStatsPanel } from './render.js';
 import { validateSaveData } from './save-check.js';
+import { insertSave } from './saves-data.js';
+import { uploadSaveFile } from './storage-upload.js';
+import { createDeleteTokenPair } from './token-hash.js';
 
 const MAX_TITLE = 80;
 const MAX_DESC = 500;
+const $ = (id) => document.getElementById(id);
 
 function setFieldError(inputEl, errorEl, message) {
-  if (message) {
-    errorEl.textContent = message;
-    errorEl.classList.remove('hidden');
-    inputEl.setAttribute('aria-invalid', 'true');
-  } else {
-    errorEl.textContent = '';
-    errorEl.classList.add('hidden');
-    inputEl.removeAttribute('aria-invalid');
-  }
+  errorEl.textContent = message || '';
+  errorEl.classList.toggle('hidden', !message);
+  if (message) inputEl.setAttribute('aria-invalid', 'true');
+  else inputEl.removeAttribute('aria-invalid');
+}
+
+function checkText(inputEl, errorEl, countEl, maxLen, requiredMsg) {
+  const val = inputEl.value;
+  countEl.textContent = `${val.length} / ${maxLen}`;
+  if (requiredMsg && val.trim().length === 0) return setFieldError(inputEl, errorEl, requiredMsg), false;
+  if (val.length > maxLen) return setFieldError(inputEl, errorEl, `Must be ${maxLen} characters or fewer.`), false;
+  return setFieldError(inputEl, errorEl, ''), true;
 }
 
 export function initUploadForm() {
-  const form = document.getElementById('upload-form');
+  const form = $('upload-form');
   if (!form) return;
 
-  const titleInput = document.getElementById('save-title');
-  const descInput = document.getElementById('save-description');
-  const versionInput = document.getElementById('game-version');
-  const fileInput = document.getElementById('save-file');
-  const titleCount = document.getElementById('title-count');
-  const descCount = document.getElementById('description-count');
-  const titleError = document.getElementById('title-error');
-  const descError = document.getElementById('description-error');
-  const fileError = document.getElementById('file-error');
-  const previewSection = document.getElementById('preview-section');
-  const previewStats = document.getElementById('preview-stats');
-  const uploadStatus = document.getElementById('upload-status');
+  const titleEl = $('save-title');
+  const descEl = $('save-description');
+  const fileEl = $('save-file');
+  const fileError = $('file-error');
+  const submitBtn = $('upload-submit');
+  const statusEl = $('upload-status');
+  const errorEl = $('upload-error');
+  const tokenBox = $('token-box');
+  const tokenValue = $('delete-token-value');
+  const copyBtn = $('copy-token-btn');
 
+  initCopyTokenButton(copyBtn, tokenValue);
   let parsedSave = null;
+  let selectedFile = null;
 
-  function validateTitle() {
-    const val = titleInput.value;
-    titleCount.textContent = `${val.length} / ${MAX_TITLE}`;
-    if (val.trim().length === 0) {
-      setFieldError(titleInput, titleError, 'Please enter a title for your city.');
-      return false;
-    }
-    if (val.length > MAX_TITLE) {
-      setFieldError(titleInput, titleError, `Title must be ${MAX_TITLE} characters or fewer.`);
-      return false;
-    }
-    setFieldError(titleInput, titleError, '');
-    return true;
-  }
-
-  function validateDescription() {
-    const val = descInput.value;
-    descCount.textContent = `${val.length} / ${MAX_DESC}`;
-    if (val.length > MAX_DESC) {
-      setFieldError(descInput, descError, `Description must be ${MAX_DESC} characters or fewer.`);
-      return false;
-    }
-    setFieldError(descInput, descError, '');
-    return true;
-  }
+  const checkTitle = () => checkText(titleEl, $('title-error'), $('title-count'), MAX_TITLE, 'Please enter a title for your city.');
+  const checkDesc = () => checkText(descEl, $('description-error'), $('description-count'), MAX_DESC, '');
 
   function clearFilePreview() {
     parsedSave = null;
-    versionInput.value = '';
-    previewStats.textContent = '';
-    previewSection.classList.add('hidden');
+    selectedFile = null;
+    $('game-version').value = '';
+    $('preview-stats').textContent = '';
+    $('preview-section').classList.add('hidden');
   }
 
-  async function handleFileChange() {
-    uploadStatus.classList.add('hidden');
-    const file = fileInput.files && fileInput.files[0];
+  async function inspectFile() {
+    const file = fileEl.files && fileEl.files[0];
     if (!file) {
       clearFilePreview();
-      setFieldError(fileInput, fileError, 'Please choose a Vij .json save file.');
-      return;
+      return setFieldError(fileEl, fileError, 'Please choose a Vij .json save file.'), false;
     }
     if (!file.name.toLowerCase().endsWith('.json')) {
       clearFilePreview();
-      setFieldError(fileInput, fileError, 'Only .json save files exported from Vij are accepted.');
-      return;
+      return setFieldError(fileEl, fileError, 'Only .json save files exported from Vij are accepted.'), false;
     }
-
     try {
-      const text = await file.text();
-      const result = validateSaveData(text);
+      const result = validateSaveData(await file.text());
       if (!result.ok) {
         clearFilePreview();
-        setFieldError(fileInput, fileError, result.error);
-        return;
+        return setFieldError(fileEl, fileError, result.error), false;
       }
       parsedSave = result.data;
-      versionInput.value = result.data.gameVersion;
-      setFieldError(fileInput, fileError, '');
-      renderStatsPanel(previewStats, result.data);
-      previewSection.classList.remove('hidden');
+      selectedFile = file;
+      $('game-version').value = result.data.gameVersion;
+      setFieldError(fileEl, fileError, '');
+      renderStatsPanel($('preview-stats'), result.data);
+      $('preview-section').classList.remove('hidden');
+      return true;
     } catch {
       clearFilePreview();
-      setFieldError(fileInput, fileError, 'Could not read that file. Please try selecting it again.');
+      return setFieldError(fileEl, fileError, 'Could not read that file. Please try selecting it again.'), false;
     }
   }
 
-  titleInput.addEventListener('input', () => {
-    uploadStatus.classList.add('hidden');
-    validateTitle();
-  });
+  titleEl.addEventListener('input', () => { errorEl.classList.add('hidden'); checkTitle(); });
+  descEl.addEventListener('input', () => { errorEl.classList.add('hidden'); checkDesc(); });
+  fileEl.addEventListener('change', () => { errorEl.classList.add('hidden'); inspectFile(); });
 
-  descInput.addEventListener('input', () => {
-    uploadStatus.classList.add('hidden');
-    validateDescription();
-  });
-
-  fileInput.addEventListener('change', handleFileChange);
-
-  form.addEventListener('submit', (event) => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
-    uploadStatus.classList.add('hidden');
+    errorEl.classList.add('hidden');
+    tokenBox.classList.add('hidden');
 
-    const isTitleValid = validateTitle();
-    const isDescValid = validateDescription();
-    const isFileValid = Boolean(parsedSave);
-    if (!isFileValid && fileError.classList.contains('hidden')) {
-      setFieldError(fileInput, fileError, 'Please choose a valid Vij .json save file.');
-    }
+    const titleOk = checkTitle();
+    const descOk = checkDesc();
+    const fileOk = await inspectFile();
+    if (!titleOk) return titleEl.focus();
+    if (!descOk) return descEl.focus();
+    if (!fileOk || !parsedSave || !selectedFile) return fileEl.focus();
 
-    if (!isTitleValid) {
-      titleInput.focus();
-      return;
-    }
-    if (!isDescValid) {
-      descInput.focus();
-      return;
-    }
-    if (!isFileValid) {
-      fileInput.focus();
-      return;
-    }
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Uploading...';
+    statusEl.textContent = 'Uploading save file and saving city stats...';
+    statusEl.classList.remove('hidden');
 
-    uploadStatus.textContent = 'Uploads open soon. Your save is ready.';
-    uploadStatus.classList.remove('hidden');
+    try {
+      const { token, tokenHash } = await createDeleteTokenPair();
+      const fileId = await uploadSaveFile(selectedFile);
+      const created = await insertSave({
+        title: titleEl.value.trim(),
+        description: descEl.value.trim(),
+        game_version: parsedSave.gameVersion,
+        sim_day: Math.trunc(parsedSave.simDay),
+        citizens_alive: Math.trunc(parsedSave.citizensAlive),
+        summary: parsedSave.summary,
+        file_id: fileId,
+        size_bytes: selectedFile.size,
+        delete_token_hash: tokenHash,
+      });
+
+      statusEl.classList.add('hidden');
+      tokenValue.textContent = token;
+      copyBtn.textContent = 'Copy token';
+      $('view-save-link').href = `save.html?id=${encodeURIComponent(created.id)}`;
+      tokenBox.classList.remove('hidden');
+      form.reset();
+      $('title-count').textContent = `0 / ${MAX_TITLE}`;
+      $('description-count').textContent = `0 / ${MAX_DESC}`;
+      clearFilePreview();
+    } catch (err) {
+      statusEl.classList.add('hidden');
+      errorEl.textContent = err?.message || 'Upload failed. Please try again.';
+      errorEl.classList.remove('hidden');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Upload save';
+    }
   });
 }

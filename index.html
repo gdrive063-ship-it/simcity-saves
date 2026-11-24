@@ -65,7 +65,7 @@
 
     <script type="module">
       import { initNav } from './nav.js';
-      import { renderSaveGrid } from './render.js';
+      import { renderEmptyState, renderLoadingState, renderSaveGrid } from './render.js';
       import { getSaves } from './saves-data.js';
       import { filterAndSortSaves } from './sort-search.js';
 
@@ -74,7 +74,7 @@
       const searchInput = document.getElementById('home-search');
       const latestContainer = document.getElementById('latest-saves');
       const popularContainer = document.getElementById('popular-saves');
-      const allSaves = getSaves();
+      let allSaves = [];
 
       function updateHomeSections() {
         const query = searchInput.value;
@@ -90,8 +90,21 @@
         renderSaveGrid(popularContainer, popular, emptyText, emptyAction);
       }
 
-      searchInput.addEventListener('input', updateHomeSections);
-      updateHomeSections();
+      async function loadHomeSaves() {
+        renderLoadingState(latestContainer, 'Loading latest saves...');
+        renderLoadingState(popularContainer, 'Loading most downloaded saves...');
+        try {
+          allSaves = await getSaves();
+          updateHomeSections();
+          searchInput.addEventListener('input', updateHomeSections);
+        } catch (err) {
+          const msg = err?.message || 'Could not reach the save server. Check your connection and try again.';
+          renderEmptyState(latestContainer, msg, { href: 'index.html', label: 'Try again' });
+          renderEmptyState(popularContainer, msg, null);
+        }
+      }
+
+      loadHomeSaves();
     </script>
   </body>
 </html>

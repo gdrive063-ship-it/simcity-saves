@@ -1,7 +1,7 @@
 // sort-search.js - Filters and sorts save lists by query, newest, downloads, or days survived
 
 function toTimestamp(save) {
-  const raw = save.uploadedAt || save.createdAt || save.date || '';
+  const raw = save.created_at || save.uploadedAt || save.createdAt || save.date || '';
   const time = new Date(raw).getTime();
   return Number.isFinite(time) ? time : 0;
 }
@@ -25,7 +25,7 @@ export function sortSaves(saves, sortBy) {
     return list.sort((a, b) => (Number(b.downloads) || 0) - (Number(a.downloads) || 0));
   }
   if (sortBy === 'days-survived') {
-    return list.sort((a, b) => (Number(b.simDay) || 0) - (Number(a.simDay) || 0));
+    return list.sort((a, b) => (Number(b.sim_day ?? b.simDay) || 0) - (Number(a.sim_day ?? a.simDay) || 0));
   }
   return list.sort((a, b) => toTimestamp(b) - toTimestamp(a));
 }
