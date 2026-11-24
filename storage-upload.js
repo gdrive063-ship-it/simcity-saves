@@ -5,7 +5,7 @@ const NETWORK_ERROR_MSG = 'Could not reach the save server. Check your connectio
 
 export async function uploadSaveFile(file) {
   const body = new FormData();
-  body.append('file', file, file.name);
+  body.append('file[]', file, file.name);
 
   let response;
   try {
@@ -29,7 +29,11 @@ export async function uploadSaveFile(file) {
     throw new Error(serverMsg);
   }
 
-  const fileId = payload?.processedFiles?.[0]?.id || payload?.id || payload?.file?.id;
+  const fileId =
+    payload?.processedFiles?.[0]?.id ||
+    payload?.id ||
+    payload?.file?.id ||
+    (Array.isArray(payload) ? payload[0]?.id : null);
   if (!fileId) {
     throw new Error('The file uploaded, but the server did not return a file ID.');
   }
