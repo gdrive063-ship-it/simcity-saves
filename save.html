@@ -1,0 +1,113 @@
+<!-- save.html - Single city save details, stats panel, and download -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Save Details · SimCity Saves</title>
+    <meta name="description" content="Inspect city statistics and download a Vij save file." />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0d0f" media="(prefers-color-scheme: dark)" />
+    <script>
+      (function(){try{var t=localStorage.getItem('simcity-saves-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+    </script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-nav="browse">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <header id="site-header"></header>
+
+    <main id="main-content">
+      <div class="container">
+        <div id="save-container"></div>
+      </div>
+    </main>
+
+    <footer id="site-footer"></footer>
+
+    <script type="module">
+      import { formatDate, formatDownloads } from './format.js';
+      import { initNav } from './nav.js';
+      import { renderEmptyState, renderStatsPanel } from './render.js';
+      import { getSaveById, getSaves } from './saves-data.js';
+
+      initNav('browse');
+
+      const container = document.getElementById('save-container');
+      const saveId = new URLSearchParams(window.location.search).get('id');
+      const allSaves = getSaves();
+      const save = saveId ? getSaveById(saveId) : null;
+
+      function downloadSaveFile(saveRecord) {
+        const payload = saveRecord.rawSave || {
+          vijSave: true,
+          gameVersion: saveRecord.gameVersion,
+          simDay: saveRecord.simDay,
+          citizensAlive: saveRecord.citizensAlive,
+          summary: saveRecord.summary || {},
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const slug = String(saveRecord.title || 'vij-city')
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-|-$/g, '') || 'vij-city';
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${slug}.json`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+      }
+
+      if (!save) {
+        const message = allSaves.length === 0
+          ? 'No saves yet. Be the first to upload one.'
+          : 'That save could not be found. It may have been removed.';
+        const action = allSaves.length === 0
+          ? { href: 'upload.html', label: 'Upload a save' }
+          : { href: 'browse.html', label: 'Back to Browse' };
+        renderEmptyState(container, message, action);
+      } else {
+        document.title = `${save.title} · SimCity Saves`;
+        const card = document.createElement('article');
+        card.className = 'surface-card';
+
+        const header = document.createElement('div');
+        header.className = 'detail-header';
+
+        const info = document.createElement('div');
+        const heading = document.createElement('h1');
+        heading.textContent = save.title || 'Untitled city';
+        const meta = document.createElement('div');
+        meta.className = 'detail-meta';
+        meta.textContent = `Version ${save.gameVersion || 'Unknown'} · Uploaded ${formatDate(save.uploadedAt || save.createdAt)} · ${formatDownloads(save.downloads)}`;
+        info.append(heading, meta);
+
+        if (save.description) {
+          const desc = document.createElement('p');
+          desc.className = 'detail-description';
+          desc.textContent = save.description;
+          info.appendChild(desc);
+        }
+
+        const downloadBtn = document.createElement('button');
+        downloadBtn.type = 'button';
+        downloadBtn.className = 'btn btn-primary';
+        downloadBtn.textContent = 'Download save (.json)';
+        downloadBtn.addEventListener('click', () => downloadSaveFile(save));
+
+        header.append(info, downloadBtn);
+
+        const statsHost = document.createElement('section');
+        statsHost.setAttribute('aria-label', 'City statistics');
+        renderStatsPanel(statsHost, save);
+
+        card.append(header, statsHost);
+        container.appendChild(card);
+      }
+    </script>
+  </body>
+</html>

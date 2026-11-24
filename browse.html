@@ -1,0 +1,101 @@
+<!-- browse.html - Browse, search, and sort all saved cities -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Browse · SimCity Saves</title>
+    <meta name="description" content="Browse and filter saved Vij cities by newest, most downloaded, or days survived." />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0d0f" media="(prefers-color-scheme: dark)" />
+    <script>
+      (function(){try{var t=localStorage.getItem('simcity-saves-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+    </script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-nav="browse">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <header id="site-header"></header>
+
+    <main id="main-content">
+      <div class="container">
+        <section class="page-hero" aria-labelledby="browse-heading">
+          <h1 id="browse-heading">Browse saves</h1>
+          <p class="page-lead">
+            Filter by title or description, and sort by upload date, downloads, or days survived.
+          </p>
+
+          <div class="toolbar">
+            <div class="search-wrap">
+              <label class="sr-only" for="browse-search">Search saves by title or description</label>
+              <input
+                id="browse-search"
+                class="input input-pill"
+                type="search"
+                placeholder="Search by title or description..."
+                autocomplete="off"
+              />
+            </div>
+
+            <div class="sort-wrap">
+              <label class="field-label" for="browse-sort" style="margin-bottom: 0;">Sort by</label>
+              <select id="browse-sort" class="select">
+                <option value="newest">Newest</option>
+                <option value="most-downloaded">Most downloaded</option>
+                <option value="days-survived">Days survived</option>
+              </select>
+            </div>
+          </div>
+        </section>
+
+        <section aria-labelledby="results-heading">
+          <h2 id="results-heading" class="sr-only">All saved cities</h2>
+          <div id="browse-results" aria-live="polite"></div>
+        </section>
+      </div>
+    </main>
+
+    <footer id="site-footer"></footer>
+
+    <script type="module">
+      import { initNav } from './nav.js';
+      import { renderSaveGrid } from './render.js';
+      import { getSaves } from './saves-data.js';
+      import { filterAndSortSaves } from './sort-search.js';
+
+      initNav('browse');
+
+      const searchInput = document.getElementById('browse-search');
+      const sortSelect = document.getElementById('browse-sort');
+      const resultsEl = document.getElementById('browse-results');
+      const params = new URLSearchParams(window.location.search);
+
+      if (params.get('q')) {
+        searchInput.value = params.get('q');
+      }
+      const initialSort = params.get('sort');
+      if (initialSort && ['newest', 'most-downloaded', 'days-survived'].includes(initialSort)) {
+        sortSelect.value = initialSort;
+      }
+
+      const allSaves = getSaves();
+
+      function updateResults() {
+        const filtered = filterAndSortSaves(allSaves, {
+          query: searchInput.value,
+          sortBy: sortSelect.value,
+        });
+        const emptyText = allSaves.length === 0
+          ? 'No saves yet. Be the first to upload one.'
+          : 'No saves match your search.';
+        const action = allSaves.length === 0 ? { href: 'upload.html', label: 'Upload a save' } : null;
+        renderSaveGrid(resultsEl, filtered, emptyText, action);
+      }
+
+      searchInput.addEventListener('input', updateResults);
+      sortSelect.addEventListener('change', updateResults);
+      updateResults();
+    </script>
+  </body>
+</html>

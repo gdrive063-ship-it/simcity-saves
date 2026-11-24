@@ -1,0 +1,120 @@
+<!-- upload.html - Upload and validate a Vij city save file -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Upload · SimCity Saves</title>
+    <meta name="description" content="Validate and prepare your Vij city save for sharing on SimCity Saves." />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0d0f" media="(prefers-color-scheme: dark)" />
+    <script>
+      (function(){try{var t=localStorage.getItem('simcity-saves-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+    </script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-nav="upload">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <header id="site-header"></header>
+
+    <main id="main-content">
+      <div class="container">
+        <section class="page-hero" aria-labelledby="upload-heading">
+          <h1 id="upload-heading">Upload a save</h1>
+          <p class="page-lead">
+            Choose a <code>.json</code> save exported from Vij to verify its stats before sharing.
+          </p>
+        </section>
+
+        <section class="surface-card form-card" aria-label="Upload save form">
+          <form id="upload-form" novalidate>
+            <div class="form-group">
+              <div class="field-header">
+                <label class="field-label" for="save-title">City title (required)</label>
+                <span id="title-count" class="char-count" aria-live="polite">0 / 80</span>
+              </div>
+              <input
+                id="save-title"
+                name="title"
+                class="input"
+                type="text"
+                required
+                maxlength="80"
+                aria-describedby="title-error"
+                placeholder="Example: Harbor Bay Day 140"
+              />
+              <p id="title-error" class="field-error hidden" role="alert"></p>
+            </div>
+
+            <div class="form-group">
+              <div class="field-header">
+                <label class="field-label" for="save-description">Description (optional)</label>
+                <span id="description-count" class="char-count" aria-live="polite">0 / 500</span>
+              </div>
+              <textarea
+                id="save-description"
+                name="description"
+                class="textarea"
+                maxlength="500"
+                aria-describedby="description-error"
+                placeholder="Share notes about your layout, economy, or transit..."
+              ></textarea>
+              <p id="description-error" class="field-error hidden" role="alert"></p>
+            </div>
+
+            <div class="form-group">
+              <label class="field-label" for="save-file">Vij save file (.json)</label>
+              <input
+                id="save-file"
+                name="saveFile"
+                class="input"
+                type="file"
+                accept=".json,application/json"
+                aria-describedby="file-hint file-error"
+              />
+              <p id="file-hint" class="field-hint">
+                Must be valid JSON containing vijSave, gameVersion, simDay, citizensAlive, and summary.
+              </p>
+              <p id="file-error" class="field-error hidden" role="alert"></p>
+            </div>
+
+            <div class="form-group">
+              <label class="field-label" for="game-version">Game version</label>
+              <input
+                id="game-version"
+                name="gameVersion"
+                class="input"
+                type="text"
+                readonly
+                placeholder="Filled automatically from your save file"
+              />
+            </div>
+
+            <section id="preview-section" class="form-group hidden" aria-labelledby="preview-heading">
+              <h2 id="preview-heading" style="margin-bottom: 12px;">Save preview</h2>
+              <div id="preview-stats"></div>
+            </section>
+
+            <button type="submit" class="btn btn-primary">Upload save</button>
+            <p id="upload-status" class="status-banner hidden" role="status" aria-live="polite"></p>
+          </form>
+
+          <p class="notice-box">
+            Saves are shared publicly. Do not put personal information in the title or description.
+          </p>
+        </section>
+      </div>
+    </main>
+
+    <footer id="site-footer"></footer>
+
+    <script type="module">
+      import { initNav } from './nav.js';
+      import { initUploadForm } from './upload-form.js';
+
+      initNav('upload');
+      initUploadForm();
+    </script>
+  </body>
+</html>

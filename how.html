@@ -1,0 +1,76 @@
+<!-- how.html - Instructions for importing a saved city into Vij -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>How to import · SimCity Saves</title>
+    <meta name="description" content="Learn how to download a city save and import it into the Vij simulator." />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f5f5f7" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0d0d0f" media="(prefers-color-scheme: dark)" />
+    <script>
+      (function(){try{var t=localStorage.getItem('simcity-saves-theme');if(t==='dark'||t==='light')document.documentElement.setAttribute('data-theme',t);}catch(e){}})();
+    </script>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-nav="how">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+    <header id="site-header"></header>
+
+    <main id="main-content">
+      <div class="container">
+        <section class="page-hero" aria-labelledby="how-heading">
+          <h1 id="how-heading">How to import a save</h1>
+          <p class="page-lead">
+            Follow these three steps to load any community city into Vij.
+          </p>
+        </section>
+
+        <section aria-label="Import steps">
+          <ol class="steps-list">
+            <li class="step-card">
+              <span class="step-number" aria-hidden="true">1</span>
+              <div>
+                <h2>Download the file</h2>
+                <p class="field-hint" style="margin-top: 6px;">
+                  Open any city on SimCity Saves and click the Download button to save the <code>.json</code> file to your device.
+                </p>
+              </div>
+            </li>
+            <li class="step-card">
+              <span class="step-number" aria-hidden="true">2</span>
+              <div>
+                <h2>Open Vij</h2>
+                <p class="field-hint" style="margin-top: 6px;">
+                  Launch the Vij city simulator on your computer or browser and head to the main menu.
+                </p>
+              </div>
+            </li>
+            <li class="step-card">
+              <span class="step-number" aria-hidden="true">3</span>
+              <div>
+                <h2>Choose Import</h2>
+                <p class="field-hint" style="margin-top: 6px;">
+                  Select <strong>Import</strong> in Vij and pick the downloaded <code>.json</code> file to load the city.
+                </p>
+              </div>
+            </li>
+          </ol>
+
+          <p class="notice-box" style="max-width: 720px;">
+            Saves are shared publicly. Do not put personal information in the title or description.
+          </p>
+        </section>
+      </div>
+    </main>
+
+    <footer id="site-footer"></footer>
+
+    <script type="module">
+      import { initNav } from './nav.js';
+
+      initNav('how');
+    </script>
+  </body>
+</html>
