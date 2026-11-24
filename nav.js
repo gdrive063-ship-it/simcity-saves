@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { key: 'browse', label: 'Browse', href: 'browse.html' },
   { key: 'upload', label: 'Upload', href: 'upload.html' },
   { key: 'how', label: 'How to import', href: 'how.html' },
+  { key: 'changelog', label: 'Changelog', href: 'changelog.html' },
 ];
 
 function getActiveTheme() {
